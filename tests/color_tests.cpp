@@ -7,9 +7,9 @@ void testReaduint32BitReader()
 {
 	BRS_TEST_BEGIN("Color Inequality");
 
-	Color one(255, 255, 255, 255);
+	BRS::Color one(255, 255, 255, 255);
 
-	Color two(255, 255, 255, 0);
+	BRS::Color two(255, 255, 255, 0);
 
 	BRS_ASSERT_THROW(one != two);
 
@@ -20,7 +20,7 @@ void testEqColor()
 {
 	BRS_TEST_BEGIN("Color Equality");
 
-	Color one(255, 255, 255, 255);
+	BRS::Color one(255, 255, 255, 255);
 
 	BRS_ASSERT_THROW(one == one);
 
@@ -31,9 +31,9 @@ void testSetColor()
 {
 	BRS_TEST_BEGIN("Color Set RGBA");
 
-	Color one(255, 255, 255, 255);
+	BRS::Color one(255, 255, 255, 255);
 
-	Color two(255, 255, 255, 0);
+	BRS::Color two(255, 255, 255, 0);
 
 	two.set_RGBA(255, 255, 255, 255);
 

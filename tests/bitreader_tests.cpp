@@ -8,7 +8,7 @@ void testReaduint32BitReader() {
 
 	std::vector<uint8_t> buf = { 0b00000100, 0b00000000, 0b00000000, 0b00000000 };
 
-	BitReader r(buf);
+	BRS::BitReader r(buf);
 	uint32_t val = r.read_uint32(0xffffffff);
 
 	BRS_ASSERT_THROW(val == 4);
@@ -21,7 +21,7 @@ void testReaduint32MaxBitReader() {
 
 	std::vector<uint8_t> buf = { 0b00000100, 0b00000000, 0b00000000, 0b00000000 };
 
-	BitReader r(buf);
+	BRS::BitReader r(buf);
 	uint32_t val = r.read_uint32(0);
 
 	BRS_ASSERT_THROW(val == 0);
@@ -34,7 +34,7 @@ void testReadBitBitReader() {
 
 	std::vector<uint8_t> buf = { 0b00000100, 0b00000000, 0b00000000, 0b10000000 };
 
-	BitReader r(buf);
+	BRS::BitReader r(buf);
 
 	BRS_ASSERT_THROW(!r.read_bit());
 	BRS_ASSERT_THROW(!r.read_bit());
@@ -53,7 +53,7 @@ void testAlignBitReader() {
 
 	std::vector<uint8_t> buf = { 0b00000100, 0b00001111 };
 
-	BitReader r(buf);
+	BRS::BitReader r(buf);
 
 	BRS_ASSERT_THROW(!r.read_bit());
 	BRS_ASSERT_THROW(!r.read_bit());
