@@ -40,10 +40,30 @@ void testUUIDString() {
 	BRS_TEST_END();
 }
 
+void testUUIDString2() {
+	BRS_TEST_BEGIN("UUID String 2");
+
+	BRS::UUID test(0, 0);
+
+	BRS_ASSERT_THROW(test.toString() == "00000000-0000-0000-0000-000000000000");
+	BRS_TEST_END();
+}
+
+void testUUIDString3() {
+	BRS_TEST_BEGIN("UUID String 3");
+
+	BRS::UUID test(UINT64_MAX, UINT64_MAX);
+
+	BRS_ASSERT_THROW(test.toString() == "ffffffff-ffff-ffff-ffff-ffffffffffff");
+	BRS_TEST_END();
+}
+
 int main(int, char**)
 {
 	testUUIDConstructor();
 	testUUIDEquality();
 	testUUIDInequality();
 	testUUIDString();
+	testUUIDString2();
+	testUUIDString3();
 }
