@@ -22,7 +22,7 @@ void testUUIDEquality() {
 }
 
 void testUUIDInequality() {
-	BRS_TEST_BEGIN("UUID Equality");
+	BRS_TEST_BEGIN("UUID Inequality");
 
 	BRS::UUID test(LLONG_MAX,LLONG_MAX);
 	BRS::UUID test2(0,0);
@@ -31,11 +31,19 @@ void testUUIDInequality() {
 	BRS_TEST_END();
 }
 
-// TODO: Add test for toString 
+void testUUIDString() {
+	BRS_TEST_BEGIN("UUID String");
+
+	BRS::UUID test(1443195872420939275, 8873712885266552998);
+
+	BRS_ASSERT_THROW(test.toString() == "e4f5c60b-1407-42ff-ad1e-98a67b25c2da");
+	BRS_TEST_END();
+}
 
 int main(int, char**)
 {
 	testUUIDConstructor();
 	testUUIDEquality();
 	testUUIDInequality();
+	testUUIDString();
 }

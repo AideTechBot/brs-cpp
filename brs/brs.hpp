@@ -13,6 +13,8 @@
 #include <sstream>
 #include <iomanip>
 
+// TODO: make all errors derivatives of std::err
+
 namespace BRS {
 
 	/* Public Interface */
@@ -34,7 +36,7 @@ namespace BRS {
 
 	/* Types */
 
-	// TODO: do derives on all of the functions
+	// TODO: define all the operations on all of the classes
 
 	enum Direction : uint8_t
 	{
@@ -126,8 +128,7 @@ namespace BRS {
 		std::tuple<uint32_t, uint32_t, uint32_t> read_uint32_vector_packed();
 	};
 
-	class Bricks {
-	public:
+	struct Bricks {
 		Version version;
 		BitReader bitReader;
 		uint32_t brickAssetNum;
