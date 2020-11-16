@@ -252,6 +252,17 @@ namespace strict_fstream
 #include <fstream>
 #include <sstream>
 
+#ifndef BRS_NO_INCLUDE_MINIZ
+#define BRS_INCLUDED_MINIZ
+
+/* MINIZ START */
+
+#include "miniz.h"
+
+/* MINIZ END */
+
+#endif
+
 namespace zstr
 {
 
