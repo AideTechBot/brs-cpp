@@ -4,28 +4,24 @@
 #ifndef BRS_BRICKADIA_H
 #define BRS_BRICKADIA_H
 
+static_assert(std::is_same_v<std::uint8_t, char> ||
+	std::is_same_v<std::uint8_t, unsigned char>,
+	"This library requires std::uint8_t to be implemented as char or unsigned char.");
+
 #include <cstdint>
 #include <tuple>
 #include <fstream>
+#include <streambuf>
+#include <istream>
 #include <vector>
 #include <optional>
 #include <codecvt>
 #include <sstream>
 #include <iomanip>
+#include <memory>
 
-#ifndef BRS_NO_INCLUDE_ZSTR
-#define BRS_INCLUDED_ZSTR
-
-#ifndef BRS_NO_INCLUDE_MINIZ
-#define BRS_INCLUDED_MINIZ
-
-/* MINIZ START */
-
-#include "miniz.h"
-
-/* MINIZ END */
-
-#endif
+// ZSTR implementation is copied below but its modified to use miniz
+// I modified it on top of that so I didn't add a toggle cuz it wouldn't work.
 
 /* STRICT_FSTREAM START */
 
@@ -231,8 +227,6 @@ namespace strict_fstream
 
 #endif
 
-// ZSTR implementation is copied below but its modified to use miniz
-
 /* STRICT_FSTREAM END */
 
 /* ZSTR START */
@@ -244,9 +238,6 @@ namespace strict_fstream
 
 // Reference:
 // http://stackoverflow.com/questions/14086417/how-to-write-custom-input-stream-in-c
-
-#ifndef __ZSTR_HPP
-#define __ZSTR_HPP
 
 #include <cassert>
 #include <fstream>
@@ -323,7 +314,9 @@ namespace zstr
 				{
 					this->avail_in = 0;
 					this->next_in = Z_NULL;
-					ret = inflateInit2(this, 15 + 32);
+					// i changed the last arg here(window bits) from 15 + 31, to the default value omegalul
+					// idk why he hardcoded it, i found another zlib wrapper that did it this way
+					ret = inflateInit2(this, Z_DEFAULT_WINDOW_BITS);
 				}
 				else
 				{
@@ -656,11 +649,7 @@ namespace zstr
 
 } // namespace zstr
 
-#endif
-
 /* ZSTR END */
-
-#endif
 
 // TODO: make all errors derivatives of std::err
 
@@ -752,7 +741,7 @@ namespace BRS {
 		uint32_t asset_name_index;
 		std::tuple<uint32_t, uint32_t, uint32_t> size;
 		std::tuple<int32_t, int32_t, int32_t> position;
-		Direction direction;
+		BRS::Direction direction;
 	};
 
 	/* Bit Readers/Writers */
@@ -778,7 +767,7 @@ namespace BRS {
 	};
 
 	struct Bricks {
-		Version version;
+		BRS::Version version;
 		BitReader bitReader;
 		uint32_t brickAssetNum;
 		uint32_t colorNum;
@@ -796,25 +785,39 @@ namespace BRS {
 	};
 
 	struct Header2 {
-		std::vector<std::string> mods;
-		std::vector<std::string> brickAssets;
+		std::vector<std::u16string> mods;
+		std::vector<std::u16string> brickAssets;
 		std::vector<Color> colors;
-		std::vector<std::string> materials;
+		std::vector<std::u16string> materials;
 		std::vector<User> brickOwners;
 	};
 
 	class Reader
 	{
+		typedef std::vector<uint8_t> buffer;
+		typedef std::vector<uint8_t>::iterator buffer_iterator;
+
 		std::ifstream reader_;
-		bool checkMagic();
-		int32_t read_int32();
-		int64_t read_int64();
-		uint8_t read_uint8();
-		uint16_t read_uint16();
-		uint32_t read_uint32();
-		uint64_t read_uint64();
-		std::u16string read_string();
-		zstr::istream read_compressed();
+		static bool check_magic(std::istream&);
+
+		static int32_t read_int32(std::istream&);
+		static int64_t read_int64(std::istream&);
+		static uint8_t read_uint8(std::istream&);
+		static uint16_t read_uint16(std::istream&);
+		static uint32_t read_uint32(std::istream&);
+		static uint64_t read_uint64(std::istream&);
+		static std::u16string read_string(std::istream&);
+
+		template <typename T>
+		static T read_number(buffer_iterator&);
+		template <typename T>
+		static std::vector<T> read_array(buffer_iterator& reader, T (*func)(buffer_iterator& r));
+		static std::u16string read_string(buffer_iterator&);
+		static Color read_color(buffer_iterator&);
+		static User read_user(buffer_iterator&);
+
+		static buffer read_compressed(std::istream&);
+		static buffer read_into_buffer(std::istream&, int32_t);
 
 		std::optional<Header1> header1;
 		std::optional<Header2> header2;
@@ -823,7 +826,7 @@ namespace BRS {
 
 		Reader(std::string filepath);
 
-		Version version;
+		BRS::Version version;
 		uint32_t gameVersion;
 
 		bool loadedHeader1();
@@ -1066,25 +1069,25 @@ namespace BRS {
 
 	Reader::Reader(std::string filepath) : reader_(std::ifstream(filepath, std::ios::in | std::ios::binary))
 	{
-		if (!checkMagic() || reader_.fail())
+		if (!check_magic(reader_) || reader_.fail())
 		{
 			throw "Invalid BRS file.";
 		}
 
-		uint16_t v = read_uint16();
+		uint16_t v = read_uint16(reader_);
 		switch (v)
 		{
 		case 1:
-			version = Initial;
+			version = BRS::Version::Initial;
 			break;
 		case 2:
-			version = MaterialsStoredAsNames;
+			version = BRS::Version::MaterialsStoredAsNames;
 			break;
 		case 3:
-			version = AddedOwnerData;
+			version = BRS::Version::AddedOwnerData;
 			break;
 		case 4:
-			version = AddedDateTime;
+			version = BRS::Version::AddedDateTime;
 			break;
 		default:
 			throw "Unsupported BRS version.";
@@ -1093,56 +1096,56 @@ namespace BRS {
 		gameVersion = 3642;
 	}
 
-	inline bool Reader::checkMagic()
+	inline bool Reader::check_magic(std::istream& reader)
 	{
-		return read_uint8() == BRS_MAGIC[0] && read_uint8() == BRS_MAGIC[1] && read_uint8() == BRS_MAGIC[2];
+		return read_uint8(reader) == BRS::BRS_MAGIC[0] && read_uint8(reader) == BRS::BRS_MAGIC[1] && read_uint8(reader) == BRS::BRS_MAGIC[2];
 	}
 
-	inline int32_t Reader::read_int32()
+	inline int32_t Reader::read_int32(std::istream& reader)
 	{
 		int32_t a;
-		reader_.read(reinterpret_cast<char*>(&a), sizeof(a));
+		reader.read(reinterpret_cast<char*>(&a), sizeof(a));
 		return a;
 	}
 
-	inline int64_t Reader::read_int64()
+	inline int64_t Reader::read_int64(std::istream& reader)
 	{
 		int64_t a;
-		reader_.read(reinterpret_cast<char*>(&a), sizeof(a));
+		reader.read(reinterpret_cast<char*>(&a), sizeof(a));
 		return a;
 	}
 
-	inline uint8_t Reader::read_uint8()
+	inline uint8_t Reader::read_uint8(std::istream& reader)
 	{
 		uint8_t a;
-		reader_.read(reinterpret_cast<char*>(&a), sizeof(a));
+		reader.read(reinterpret_cast<char*>(&a), sizeof(a));
 		return a;
 	}
 
-	uint16_t Reader::read_uint16()
+	inline uint16_t Reader::read_uint16(std::istream& reader)
 	{
 		uint16_t a;
-		reader_.read(reinterpret_cast<char*>(&a), sizeof(a));
+		reader.read(reinterpret_cast<char*>(&a), sizeof(a));
 		return a;
 	}
 
-	inline uint32_t Reader::read_uint32()
+	inline uint32_t Reader::read_uint32(std::istream& reader)
 	{
 		uint32_t a;
-		reader_.read(reinterpret_cast<char*>(&a), sizeof(a));
+		reader.read(reinterpret_cast<char*>(&a), sizeof(a));
 		return a;
 	}
 
-	inline uint64_t Reader::read_uint64()
+	inline uint64_t Reader::read_uint64(std::istream& reader)
 	{
 		uint64_t a;
-		reader_.read(reinterpret_cast<char*>(&a), sizeof(a));
+		reader.read(reinterpret_cast<char*>(&a), sizeof(a));
 		return a;
 	}
 
-	inline std::u16string Reader::read_string()
+	inline std::u16string Reader::read_string(std::istream& reader)
 	{
-		int32_t size = read_int32();
+		int32_t size = read_int32(reader);
 		bool isUCS2 = false;
 		if (size < 0)
 		{
@@ -1161,7 +1164,7 @@ namespace BRS {
 			for (int i = 0; i < size / 2; i++)
 			{
 				char16_t a;
-				reader_.read(reinterpret_cast<char*>(&a), sizeof(a));
+				reader.read(reinterpret_cast<char*>(&a), sizeof(a));
 				ws += a;
 			}
 			return ws;
@@ -1172,16 +1175,143 @@ namespace BRS {
 			for (int i = 0; i < size - 1; i++)
 			{
 				char a;
-				reader_.read(&a, sizeof(a));
+				reader.read(&a, sizeof(a));
 				ws += a;
 			}
 
 			// TODO: add error handling here for when the last byte isn't 0
 			char last;
-			reader_.read(&last, sizeof(last));
+			reader.read(&last, sizeof(last));
 
 			std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
 			return convert.from_bytes(ws);
+		}
+	}
+
+	template <typename T>
+	inline T Reader::read_number(buffer_iterator& reader)
+	{
+		uint8_t a[sizeof(T)];
+		for(int i = 0; i < sizeof(T); i++)
+		{
+			a[i] = *(reader++);
+		}
+
+		T r = 0;
+		for(int i = 0; i < sizeof(T); i++)
+		{
+			r = (r << 8) + a[sizeof(T)-1-i];
+		}
+		return r;
+	}
+	
+
+	inline std::u16string Reader::read_string(buffer_iterator& reader)
+	{
+		int32_t size = read_number<int32_t>(reader);
+		bool isUCS2 = false;
+		if (size < 0)
+		{
+			isUCS2 = true;
+			size = -size;
+		}
+
+		if (isUCS2)
+		{
+			if (size % 2 != 0)
+			{
+				throw "Invalid UCS-2 data size.";
+			}
+
+			std::u16string ws;
+			for (int i = 0; i < size / 2; i++)
+			{
+				ws += static_cast<wchar_t>(read_number<uint16_t>(reader));
+			}
+			return ws;
+		}
+		else
+		{
+			std::string ws;
+			for (int i = 0; i < size - 1; i++)
+			{
+				char a;
+				ws += static_cast<char>(read_number<uint8_t>(reader));
+			}
+
+			// TODO: add error handling here for when the last byte isn't 0
+			read_number<uint8_t>(reader);
+
+			std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+			return convert.from_bytes(ws);
+		}
+	}
+
+	inline Color Reader::read_color(buffer_iterator& reader)
+	{
+		uint8_t b = read_number<uint8_t>(reader);
+		uint8_t g = read_number<uint8_t>(reader);
+		uint8_t r = read_number<uint8_t>(reader);
+		uint8_t a = read_number<uint8_t>(reader);
+		return Color(r, g, b, a);
+	}
+
+	inline User Reader::read_user(buffer_iterator& reader)
+	{
+		uint64_t a = read_number<uint64_t>(reader);
+		uint64_t b = read_number<uint64_t>(reader);
+		std::u16string name = read_string(reader);
+		return { UUID(a,b), name };
+	}
+
+	template <typename T>
+	inline std::vector<T> Reader::read_array(buffer_iterator& reader, T (*func)(buffer_iterator& r)){
+		int32_t size = read_number<int32_t>(reader);
+		std::vector<T> result;
+		for(int i = 0; i < size; i++)
+		{
+			result.push_back(func(reader));
+		}
+		return result;
+	}
+	
+	inline Reader::buffer Reader::read_into_buffer(std::istream& reader, int32_t size)
+	{
+
+		buffer buffer;
+		for(int i = 0; i < size; i++)
+		{
+			char a;
+			reader.read(&a, sizeof(a));
+			buffer.push_back(static_cast<uint8_t>(a));
+		}
+		return buffer;
+	}
+
+	inline Reader::buffer Reader::read_compressed(std::istream& reader)
+	{
+		// represents compressed and uncompressed block sizes
+		const int32_t uncompressed_size = read_int32(reader);
+		const int32_t compressed_size = read_int32(reader);
+
+		// Throw error for weird compression/uncompression sizes
+		if (compressed_size < 0 || uncompressed_size < 0 || compressed_size >= uncompressed_size)
+		{
+			// TODO: fix this
+			throw "Invalid compressed section size (comp: , uncomp: )";
+		}
+
+		// No compressed data? return those bytes
+		if(compressed_size == 0)
+		{
+			// Decompress if there is data to decompress
+			return read_into_buffer(reader, uncompressed_size);
+		} else
+		{
+			// Decompress if there is data to decompress
+			zstr::istreambuf zsbuf(reader.rdbuf(), compressed_size, true);
+			std::istream s(&zsbuf);
+			return read_into_buffer(s, uncompressed_size);
 		}
 	}
 
@@ -1227,26 +1357,26 @@ namespace BRS {
 	inline void Reader::readHeader1()
 	{
 		// represents compressed and uncompressed block sizes
-		uint32_t uncompressed_size = read_int32();
-		uint32_t compressed_size = read_int32();
+		buffer header1_raw = read_compressed(reader_);
 
-		std::u16string map = read_string();
-		std::u16string author_name = read_string();
-		std::u16string description = read_string();
-		uint64_t f = read_int64();
-		uint64_t s = read_int64();
+		buffer_iterator it = header1_raw.begin();
+		std::u16string map = read_string(it);
+		std::u16string author_name = read_string(it);
+		std::u16string description = read_string(it);
+		uint64_t f = read_number<int64_t>(it);
+		uint64_t s = read_number<int64_t>(it);
 		UUID author_id = UUID(f, s);
 		std::optional<User> host = std::nullopt;
 		std::optional<uint64_t> save_time;
-		if (version >= Version::AddedDateTime) {
-			save_time = read_int64();
+		if (version >= BRS::Version::AddedDateTime) {
+			save_time = read_number<int64_t>(it);
 		}
 		else
 		{
 			save_time = std::nullopt;
 		}
 
-		int32_t brick_count = read_int32();
+		int32_t brick_count = read_number<int32_t>(it);
 
 		Header1 result = {
 			map,
@@ -1261,6 +1391,24 @@ namespace BRS {
 
 	inline void Reader::readHeader2()
 	{
+		// represents compressed and uncompressed block sizes
+		buffer header2_raw = read_compressed(reader_);
+
+		buffer_iterator it = header2_raw.begin();
+		std::vector<std::u16string> mods = read_array<std::u16string>(it, &Reader::read_string);
+		std::vector<std::u16string> brick_assets = read_array<std::u16string>(it, &Reader::read_string);
+		std::vector<Color> colors = read_array<Color>(it, &Reader::read_color);
+		std::vector<std::u16string> materials = read_array<std::u16string>(it, &Reader::read_string);
+		std::vector<User> brick_owners = read_array(it, read_user);
+
+		Header2 result = {
+		 mods,
+		 brick_assets,
+		 colors,
+		 materials,
+		 brick_owners
+		};
+		header2 = std::optional<Header2>{ result };
 	}
 
 	inline void Reader::readBricks()
@@ -1268,7 +1416,7 @@ namespace BRS {
 
 	}
 
-};
+}
 
 #endif /* BRS_BRICKADIA_IMPLEMENTATION_H */
 
