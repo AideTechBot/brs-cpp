@@ -1415,9 +1415,8 @@ namespace BRS {
 	{
 
 	}
+#endif /* BRS_BRICKADIA_IMPLEMENTATION_H */
 
 }
-
-#endif /* BRS_BRICKADIA_IMPLEMENTATION_H */
 
 #endif /* BRS_BRICKADIA_H */
