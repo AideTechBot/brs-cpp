@@ -9,6 +9,7 @@ static_assert(std::is_same_v<std::uint8_t, char> ||
 	"This library requires std::uint8_t to be implemented as char or unsigned char.");
 
 #include <cstdint>
+#include <climits>
 #include <tuple>
 #include <fstream>
 #include <streambuf>
@@ -22,6 +23,8 @@ static_assert(std::is_same_v<std::uint8_t, char> ||
 
 // ZSTR implementation is copied below but its modified to use miniz
 // I modified it on top of that so I didn't add a toggle cuz it wouldn't work.
+// I also modified the copy of STRICT_FSTREAM because it didn't include cstring
+// to compile on posix/gnu
 
 /* STRICT_FSTREAM START */
 
@@ -31,6 +34,7 @@ static_assert(std::is_same_v<std::uint8_t, char> ||
 #include <cassert>
 #include <fstream>
 #include <string>
+#include <cstring>
 
 /**
  * This namespace defines wrappers for std::ifstream, std::ofstream, and
@@ -651,8 +655,6 @@ namespace zstr
 
 /* ZSTR END */
 
-// TODO: make all errors derivatives of std::err
-
 namespace BRS {
 
 	/* Public Interface */
@@ -673,8 +675,6 @@ namespace BRS {
 	const Version VERSION_WRITE = Version::AddedDateTime;
 
 	/* Types */
-
-	// TODO: define all the operations on all of the classes
 
 	enum Direction : uint8_t
 	{
@@ -743,6 +743,16 @@ namespace BRS {
 		std::tuple<int32_t, int32_t, int32_t> position;
 		BRS::Direction direction;
 	};
+
+	class Exception
+		: public std::exception
+	{
+	public:
+		Exception(const std::string& msg) : _msg(msg) {}
+		const char* what() const noexcept { return _msg.c_str(); }
+	private:
+		std::string _msg;
+	}; // class Exception
 
 	/* Bit Readers/Writers */
 
@@ -1071,7 +1081,7 @@ namespace BRS {
 	{
 		if (!check_magic(reader_) || reader_.fail())
 		{
-			throw "Invalid BRS file.";
+			throw BRS::Exception("Invalid BRS file.");
 		}
 
 		uint16_t v = read_uint16(reader_);
@@ -1090,7 +1100,7 @@ namespace BRS {
 			version = BRS::Version::AddedDateTime;
 			break;
 		default:
-			throw "Unsupported BRS version.";
+			throw BRS::Exception("Unsupported BRS version.");
 		}
 
 		gameVersion = 3642;
@@ -1157,7 +1167,7 @@ namespace BRS {
 		{
 			if (size % 2 != 0)
 			{
-				throw "Invalid UCS-2 data size.";
+				throw BRS::Exception("Invalid UCS-2 data size.");
 			}
 
 			std::u16string ws;
@@ -1220,7 +1230,7 @@ namespace BRS {
 		{
 			if (size % 2 != 0)
 			{
-				throw "Invalid UCS-2 data size.";
+				throw BRS::Exception("Invalid UCS-2 data size.");
 			}
 
 			std::u16string ws;
@@ -1297,8 +1307,7 @@ namespace BRS {
 		// Throw error for weird compression/uncompression sizes
 		if (compressed_size < 0 || uncompressed_size < 0 || compressed_size >= uncompressed_size)
 		{
-			// TODO: fix this
-			throw "Invalid compressed section size (comp: , uncomp: )";
+			throw BRS::Exception("Invalid compressed section size for block");
 		}
 
 		// No compressed data? return those bytes
@@ -1335,7 +1344,7 @@ namespace BRS {
 		if (header1.has_value()) {
 			return header1.value();
 		}
-		throw "Header 1 not already loaded.";
+		throw BRS::Exception("Header 1 not already loaded.");
 	}
 
 	inline Header2 Reader::getHeader2()
@@ -1343,7 +1352,7 @@ namespace BRS {
 		if (header2.has_value()) {
 			return header2.value();
 		}
-		throw "Header 2 not already loaded.";
+		throw BRS::Exception("Header 2 not already loaded.");
 	}
 
 	inline Bricks Reader::getBricks()
@@ -1351,7 +1360,7 @@ namespace BRS {
 		if (bricks.has_value()) {
 			return bricks.value();
 		}
-		throw "Bricks not already loaded.";
+		throw BRS::Exception("Bricks not already loaded.");
 	}
 
 	inline void Reader::readHeader1()
