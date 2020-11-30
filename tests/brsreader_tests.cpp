@@ -7,10 +7,11 @@
 void testBRSReaderHeader1(BRS::Reader&);
 void testBRSReaderHeader2(BRS::Reader&);
 
-void testBRSReaderConstructor() {
+void testBRSReaderConstructor(std::string path) {
+	std::cout << path << std::endl;
 	BRS_TEST_BEGIN("BRS Reader Constructor");
 
-	BRS::Reader test("test2.brs");
+	BRS::Reader test(path);
 	BRS_ASSERT_THROW(test.version == BRS::Version::AddedDateTime);
 	BRS_ASSERT_THROW(test.gameVersion == 3642);
 
@@ -70,8 +71,17 @@ void testBRSReaderHeader2(BRS::Reader& test) {
 	BRS_TEST_END();
 }
 
-int main(int, char**)
+int main(int argc, char** argv)
 {
-	// Start the chain of tests
-	testBRSReaderConstructor();
+	if(argc > 1 && std::string(argv[1]) == "WORKING_DIRECTORY")
+	{
+		// Start the chain of tests
+		std::string test_path = std::string(argv[2]);
+		std::string file_name = "/test_save.brs";
+		testBRSReaderConstructor(test_path + file_name);
+	}
+	else {
+		// Start the chain of tests
+		testBRSReaderConstructor("test2.brs");
+	}
 }
