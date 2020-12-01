@@ -2,6 +2,10 @@
 
 ![Multi-Platform Build](https://github.com/AideTechBot/brs-cpp/workflows/Multi-Platform%20Build/badge.svg)
 
+## How to use
+
+You don't, it's not done yet.
+
 ## License
 ```
 brs-cpp is a one file header library for reading and writing to BRS save files.
