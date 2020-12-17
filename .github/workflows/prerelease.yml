@@ -18,6 +18,7 @@ jobs:
           mkdir pack
           cp LICENSE pack/
           cp README.md pack/
+          ls
           cp -ra src/ pack/
           cd pack 
           pip install quom
