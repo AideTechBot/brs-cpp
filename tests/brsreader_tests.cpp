@@ -9,7 +9,6 @@ void testBRSReaderHeader2(BRS::Reader&);
 void testBRSReaderBricks(BRS::Reader&);
 
 void testBRSReaderConstructor(std::string path) {
-	std::cout << path << std::endl;
 	BRS_TEST_BEGIN("BRS Reader Constructor");
 
 	BRS::Reader test(path);
@@ -57,7 +56,7 @@ void testBRSReaderHeader2(BRS::Reader& test) {
 	BRS_ASSERT_THROW(header2.brickAssets.size() == 1);
 	BRS_ASSERT_THROW(header2.brickAssets[0] == u"PB_DefaultBrick");
 	BRS_ASSERT_THROW(header2.colors.size() == 56);
-	// TODO: Add check for all the colors, I'm too lazy to do this.
+	// TODO: Add check for all the colors, I'm too lazy to do this. I assume it's right until proven otherwise.
 	BRS_ASSERT_THROW(header2.materials.size() == 6);
 	BRS_ASSERT_THROW(header2.materials[0] == u"BMC_Ghost");
 	BRS_ASSERT_THROW(header2.materials[1] == u"BMC_Ghost_Fail");
@@ -84,15 +83,25 @@ void testBRSReaderBricks(BRS::Reader& test) {
 
 	std::vector<BRS::Brick> bricks = test.getBricks();
 
+	BRS_ASSERT_THROW(bricks[0].asset_name_index == 0);
+	BRS_ASSERT_THROW(bricks[0].size == BRS::uint32_t_vector(5,5,6));
+	BRS_ASSERT_THROW(bricks[0].position == BRS::int32_t_vector(290,211,13));
+	BRS_ASSERT_THROW(bricks[0].direction == BRS::Direction::ZPositive);
+	BRS_ASSERT_THROW(bricks[0].rotation == BRS::Rotation::Deg0);
+	BRS_ASSERT_THROW(bricks[0].collision);
+	BRS_ASSERT_THROW(bricks[0].visibility);
+	BRS_ASSERT_THROW(bricks[0].material_index == 2);
+	BRS_ASSERT_THROW(!bricks[0].color.has_value());
+	BRS_ASSERT_THROW(bricks[0].color_index.has_value());
+	BRS_ASSERT_THROW(bricks[0].color_index.value() == 0);
+	BRS_ASSERT_THROW(bricks[0].owner_index.has_value());
+	BRS_ASSERT_THROW(bricks[0].owner_index.value() == 0);
+
 	BRS_TEST_END();
 }
 
 int main(int argc, char** argv)
 {
-	// for(int i = 0; i < argc; i++)
-	// {
-	// 	std::cout << argv[i] << std::endl;
-	// }
 	if(argc > 1 && std::string(argv[1]) == "WORKING_DIRECTORY")
 	{
 		// Start the chain of tests
