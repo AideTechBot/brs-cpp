@@ -21,6 +21,7 @@ jobs:
           cp -ra brs/ pack/
           cd pack 
           pip install quom
+          ls
           mv brs.hpp brs-original.hpp
           python -m quom brs-original.hpp brs.hpp
 
