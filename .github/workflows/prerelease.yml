@@ -37,6 +37,6 @@ jobs:
           prerelease: true
           title: "Development Build"
           files: |
-            LICENSE
-            README.md
-            brs.hpp
+            pack/LICENSE
+            pack/README.md
+            pack/brs.hpp
