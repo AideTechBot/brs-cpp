@@ -6,6 +6,7 @@
 // So we can chain the calls
 void testBRSReaderHeader1(BRS::Reader&);
 void testBRSReaderHeader2(BRS::Reader&);
+void testBRSReaderBricks(BRS::Reader&);
 
 void testBRSReaderConstructor(std::string path) {
 	std::cout << path << std::endl;
@@ -67,12 +68,31 @@ void testBRSReaderHeader2(BRS::Reader& test) {
 	BRS_ASSERT_THROW(header2.brickOwners.size() == 1);
 	BRS_ASSERT_THROW(header2.brickOwners[0].name == u"Aide33");
 	BRS_ASSERT_THROW(header2.brickOwners[0].uuid.toString() == "e4f5c60b-1407-42ff-ad1e-98a67b25c2da");
+	
+	BRS_TEST_END();
+
+	// This test is depended on by the following tests
+	testBRSReaderBricks(test);
+}
+
+void testBRSReaderBricks(BRS::Reader& test) {
+	BRS_TEST_BEGIN("BRS Reader Brick Reader");
+
+	test.readBricks();
+
+	BRS_ASSERT_THROW(test.loadedBricks());
+
+	std::vector<BRS::Brick> bricks = test.getBricks();
 
 	BRS_TEST_END();
 }
 
 int main(int argc, char** argv)
 {
+	// for(int i = 0; i < argc; i++)
+	// {
+	// 	std::cout << argv[i] << std::endl;
+	// }
 	if(argc > 1 && std::string(argv[1]) == "WORKING_DIRECTORY")
 	{
 		// Start the chain of tests

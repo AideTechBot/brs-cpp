@@ -2,6 +2,7 @@
 add_executable (test_brs_color color_tests.cpp)
 add_executable (test_brs_bitreader bitreader_tests.cpp)
 add_executable (test_brs_reader brsreader_tests.cpp)
+set_target_properties(test_brs_reader PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable (test_brs_uuid uuid_tests.cpp)
 
 # Tests
