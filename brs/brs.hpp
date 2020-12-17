@@ -760,8 +760,8 @@ namespace BRS {
 	inline BRS::buffer Reader::read_compressed()
 	{
 		// represents compressed and uncompressed block sizes
-		const int32_t uncompressed_size = read_int32(reader_);
-		const int32_t compressed_size = read_int32(reader_);
+		int32_t uncompressed_size = read_uint32(reader_);
+		int32_t compressed_size = read_uint32(reader_);
 
 		// Throw error for weird compression/uncompression sizes
 		if (compressed_size < 0 || uncompressed_size < 0 || compressed_size >= uncompressed_size)
@@ -780,9 +780,14 @@ namespace BRS {
 
 		reader_.read(reinterpret_cast<char*>(src), compressed_size);
 
-		// TODO: check return value and fail if bad
-		mz_uncompress(dest, (mz_ulong*)&uncompressed_size, src, (mz_ulong)compressed_size);
+		int cmp_status = uncompress(dest, reinterpret_cast<mz_ulong*>(&uncompressed_size), src, static_cast<mz_ulong>(compressed_size));
 		delete[] src;
+
+		if(cmp_status != Z_OK)
+		{
+			delete[] dest;
+			throw Exception("Something went wrong with the decompression.");
+		}
 
 		buffer result(dest, dest + uncompressed_size);
 		delete[] dest;
