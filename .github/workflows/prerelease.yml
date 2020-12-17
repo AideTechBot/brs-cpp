@@ -18,8 +18,7 @@ jobs:
           mkdir pack
           cp LICENSE pack/
           cp README.md pack/
-          ls
-          cp -ra src/ pack/
+          cp -ra brs/ pack/
           cd pack 
           pip install quom
           mv brs.hpp brs-original.hpp
