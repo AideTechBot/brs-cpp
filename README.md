@@ -2,6 +2,18 @@
 
 ![Multi-Platform Build](https://github.com/AideTechBot/brs-cpp/workflows/Multi-Platform%20Build/badge.svg)
 
+## Building
+
+**How to build:**
+```
+cmake --build [ Build directory ]
+```
+**How to run tests:**
+```
+cd [ Build directory ]
+ctest --verbose
+```
+
 ## How to use
 
 You don't, it's not done yet.
