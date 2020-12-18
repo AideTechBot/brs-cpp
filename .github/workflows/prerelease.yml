@@ -22,8 +22,7 @@ jobs:
           cd pack 
           pip install quom
           mv brs.hpp brs-original.hpp
-          python -m quom brs-original.hpp brs.hpp
-          ls
+          python -m quom brs-original.hpp brs.hpp -s "~> stitch <~" 
 
       - name: Automatic Release
         # You may pin to the exact commit or the version.
