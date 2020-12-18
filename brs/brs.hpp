@@ -464,19 +464,6 @@ namespace BRS {
 
 	inline Reader::Reader(std::string filepath) : reader_(std::ifstream(filepath, std::ios::in | std::ios::binary))
 	{
-		// std::cout << std::endl;
-		// int column = 0;
-		// while (!reader_.eof()) {
-		// 	unsigned char c;
-		// 	reader_.read(reinterpret_cast<char*>(&c), sizeof(c));
-		// 	std::cout << std::setfill('0') << std::setw(2) << std::right << std::hex << (unsigned int)c << " ";
-		// 	if((column + 1) % 8 == 0)
-		// 	{
-		// 		std::cout << std::endl;
-		// 	}
-		// 	column++;
-		// }
-
 		if (!check_magic(reader_) || reader_.fail())
 		{
 			throw BRS::Exception("Invalid BRS file.");
