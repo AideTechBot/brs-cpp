@@ -14,9 +14,57 @@ cd [ Build directory ]
 ctest --verbose
 ```
 
+## Download
+
+Go to the side bar and navigate to the release you want to download. You can grab the release tagged `latest` if you want the most up to date changes, or you can go by version.
+
+
+**Do not clone the repo then copy the file, it is not packed with the libraries required.**
+
 ## How to use
 
-You don't, it's not done yet.
+Here's a simple example of loading and reading different things from a BRS file:
+
+```cpp
+
+#define BRS_BRICKADIA_IMPLEMENTATION_H
+#include "brs.hpp"
+
+#include <iostream>
+#include <filesystem>
+
+int main()
+{
+
+	BRS::Reader reader(std::filesystem::current_path().string() + "\\test_save.brs");
+
+	reader.readHeader1();
+	
+	if(reader.loadedHeader1()) {
+		BRS::Header1 h1 = reader.getHeader1();
+		std::cout << h1.author.name << " " << h1.description << " " << h1.map << std::endl;
+	}
+
+	reader.readHeader2();
+	
+	if(reader.loadedHeader2()) {
+		BRS::Header2 h2 = reader.getHeader2();
+		for(auto owner : h2.brickOwners) {
+			std::cout << owner.name <<  std::endl;
+		}
+	}
+
+	reader.readBricks();
+	
+	if(reader.loadedBricks()) {
+		BRS::Bricks b = reader.getBricks();
+		for(auto brick : b) {
+			std::cout << brick.visibility <<  std::endl;
+		}
+	}
+}
+
+```
 
 ## License
 ```
