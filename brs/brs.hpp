@@ -4,9 +4,8 @@
 #ifndef BRS_BRICKADIA_H
 #define BRS_BRICKADIA_H
 
-static_assert(std::is_same_v<std::uint8_t, char> ||
-	std::is_same_v<std::uint8_t, unsigned char>,
-	"This library requires std::uint8_t to be implemented as char or unsigned char.");
+// TODO: don't do this
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 #include <cstdint>
 #include <climits>
