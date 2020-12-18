@@ -907,3 +907,9 @@ namespace BRS {
 }
 
 #endif /* BRS_BRICKADIA_H */
+
+#ifndef BRS_NO_INCLUDE_MINIZ
+
+// ~> stitch <~
+
+#endif
