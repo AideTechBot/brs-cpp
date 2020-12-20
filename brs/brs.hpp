@@ -762,23 +762,22 @@ namespace BRS {
 			return read_into_buffer(reader_, uncompressed_size);
 		}
 
-		uint8_t *src = new uint8_t[compressed_size], *dest = new uint8_t[uncompressed_size];
+		uint8_t *src = new uint8_t[compressed_size];
 
 		reader_.read(reinterpret_cast<char*>(src), compressed_size);
 
 		mz_ulong us = static_cast<mz_ulong>(uncompressed_size);
-		int cmp_status = uncompress(dest, &us, src, static_cast<mz_ulong>(compressed_size));
+		buffer result;
+		result.reserve(uncompressed_size);
+		int cmp_status = uncompress(result.data(), &us, src, static_cast<mz_ulong>(compressed_size));
 
 		delete[] src;
 
 		if(cmp_status != Z_OK)
 		{
-			delete[] dest;
 			throw Exception("Something went wrong with the decompression.");
 		}
 
-		buffer result(dest, dest + uncompressed_size);
-		delete[] dest;
 		return result;
 	}
 
