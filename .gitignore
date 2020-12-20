@@ -73,6 +73,7 @@ StyleCopReport.xml
 *.obj
 *.iobj
 *.pch
+
 *.pdb
 *.ipdb
 *.pgc
@@ -367,3 +368,6 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+
+# Custom vim scripts
+.vim.custom
