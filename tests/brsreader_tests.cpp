@@ -64,9 +64,11 @@ void testBRSReaderHeader2(BRS::Reader& test) {
 	BRS_ASSERT_THROW(header2.materials[3] == u"BMC_Glow");
 	BRS_ASSERT_THROW(header2.materials[4] == u"BMC_Metallic");
 	BRS_ASSERT_THROW(header2.materials[5] == u"BMC_Hologram");
-	BRS_ASSERT_THROW(header2.brickOwners.size() == 1);
-	BRS_ASSERT_THROW(header2.brickOwners[0].name == u"Aide33");
-	BRS_ASSERT_THROW(header2.brickOwners[0].uuid.toString() == "e4f5c60b-1407-42ff-ad1e-98a67b25c2da");
+	BRS_ASSERT_THROW(std::holds_alternative<std::vector<BRS::User>>(header2.brickOwners));
+  std::vector<BRS::User> brickOwners = std::get<std::vector<BRS::User>>(header2.brickOwners);
+	BRS_ASSERT_THROW(brickOwners.size() == 1);
+	BRS_ASSERT_THROW(brickOwners[0].name == u"Aide33");
+	BRS_ASSERT_THROW(brickOwners[0].uuid.toString() == "e4f5c60b-1407-42ff-ad1e-98a67b25c2da");
 	
 	BRS_TEST_END();
 

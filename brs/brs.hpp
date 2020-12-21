@@ -15,6 +15,7 @@
 #include <istream>
 #include <vector>
 #include <optional>
+#include <variant>
 #include <codecvt>
 #include <sstream>
 #include <iomanip>
@@ -50,10 +51,11 @@ namespace BRS {
 		Initial = 1,
 		MaterialsStoredAsNames = 2,
 		AddedOwnerData = 3,
-		AddedDateTime = 4
+		AddedDateTime = 4,
+		Alpha5 = 8
 	};
 
-	const Version VERSION_WRITE = Version::AddedDateTime;
+	const Version VERSION_WRITE = Version::Alpha5;
 
 	/* Types */
 
@@ -115,6 +117,11 @@ namespace BRS {
 	{
 		UUID uuid;
 		std::u16string name;
+	};
+
+	struct BrickOwner : User
+	{
+    int32_t brick_count;
 	};
 
 	struct Brick
@@ -183,7 +190,7 @@ namespace BRS {
 		std::vector<std::u16string> brickAssets;
 		std::vector<Color> colors;
 		std::vector<std::u16string> materials;
-		std::vector<User> brickOwners;
+    std::variant<std::vector<BrickOwner>,std::vector<User>> brickOwners;
 	};
 
 	class Reader
@@ -208,6 +215,7 @@ namespace BRS {
 		static std::u16string read_string(buffer_iterator&);
 		static Color read_color(buffer_iterator&);
 		static User read_user(buffer_iterator&);
+		static BrickOwner read_brick_owner(buffer_iterator&);
 		static std::vector<Brick> read_bricks(BRS::Version, BitReader&, uint32_t, uint32_t, int32_t);
 		static Brick read_brick(BRS::Version, BitReader&, uint32_t, uint32_t);
 
@@ -484,12 +492,14 @@ namespace BRS {
 		case 4:
 			version = BRS::Version::AddedDateTime;
 			break;
+    case 8:
+      version = BRS::Version::Alpha5;
+      break;
 		default:
 			throw BRS::Exception("Unsupported BRS version.");
 		}
 
-		gameVersion = 3642;
-
+		gameVersion = version >= BRS::Version::Alpha5 ? read_int32(reader_): 3642;
 	}
 
 	inline bool Reader::check_magic(std::istream& reader)
@@ -660,6 +670,15 @@ namespace BRS {
 		return { UUID(a,b), name };
 	}
 
+	inline BrickOwner Reader::read_brick_owner(buffer_iterator& reader)
+	{
+		uint64_t a = read_number<uint64_t>(reader);
+		uint64_t b = read_number<uint64_t>(reader);
+		std::u16string name = read_string(reader);
+    int32_t bricks = read_number<int32_t>(reader);
+		return { UUID(a,b), name, bricks };
+	}
+
 	template <typename T>
 	inline std::vector<T> Reader::read_array(buffer_iterator& reader, T (*func)(buffer_iterator& r)){
 		int32_t size = read_number<int32_t>(reader);
@@ -823,15 +842,24 @@ namespace BRS {
 	inline void Reader::readHeader1()
 	{
 		buffer header1_raw = read_compressed();
-
 		buffer_iterator it = header1_raw.begin();
+
 		std::u16string map = read_string(it);
 		std::u16string author_name = read_string(it);
 		std::u16string description = read_string(it);
 		uint64_t f = read_number<int64_t>(it);
 		uint64_t s = read_number<int64_t>(it);
 		UUID author_id = UUID(f, s);
-		std::optional<User> host = std::nullopt;
+		std::optional<User> host;
+    if(version >= BRS::Version::Alpha5) {
+      std::u16string name = read_string(it);
+      uint64_t a = read_number<int64_t>(it);
+      uint64_t b = read_number<int64_t>(it);
+      UUID id = UUID(a, b);
+      host = User{ id, name };
+    } else {
+      host = std::nullopt;
+    }
 		std::optional<uint64_t> save_time;
 		if (version >= BRS::Version::AddedDateTime) {
 			save_time = read_number<int64_t>(it);
@@ -857,13 +885,27 @@ namespace BRS {
 	inline void Reader::readHeader2()
 	{
 		buffer header2_raw = read_compressed();
-
 		buffer_iterator it = header2_raw.begin();
+
 		std::vector<std::u16string> mods = read_array<std::u16string>(it, &Reader::read_string);
 		std::vector<std::u16string> brick_assets = read_array<std::u16string>(it, &Reader::read_string);
 		std::vector<Color> colors = read_array<Color>(it, &Reader::read_color);
-		std::vector<std::u16string> materials = read_array<std::u16string>(it, &Reader::read_string);
-		std::vector<User> brick_owners = read_array(it, read_user);
+		std::vector<std::u16string> materials;
+    if(version >= BRS::Version::MaterialsStoredAsNames) {
+      materials = read_array<std::u16string>(it, &Reader::read_string);
+    } else {
+      materials.reserve(4);
+      materials[0] = u"BMC_Hologram";
+      materials[1] = u"BMC_Plastic";
+      materials[2] = u"BMC_Glow";
+      materials[3] = u"BMC_Metallic";
+    }
+    std::variant<std::vector<BrickOwner>, std::vector<User>> brick_owners;
+    if(version >= BRS::Version::Alpha5) {
+      brick_owners = read_array(it, read_brick_owner);
+    } else {
+      brick_owners = read_array(it, read_user);
+    }
 
 		Header2 result = {
 		 mods,
